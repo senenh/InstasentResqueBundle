@@ -29,5 +29,7 @@
     "autoload": {
         "psr-0": { "Instasent\\ResqueBundle": "" }
     },
-    "target-dir": "Instasent/ResqueBundle"
+    "target-dir": "Instasent/ResqueBundle",
+    "prefer-stable": true,
+    "minimum-stability": "dev"
 }
