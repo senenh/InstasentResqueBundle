@@ -98,7 +98,7 @@ Resque_Event::listen('onFailure', function(Exception $exception, Resque_Job $job
     if ($delay == 0) {
         Resque::enqueue($job->queue, $job->payload['class'], $args);
         $logger->log(Psr\Log\LogLevel::ERROR, 'Job failed. Auto re-queued, attempt number: {attempt}', array(
-            'attempt' => $args['bcc_resque.retry_attempt'] - 1)
+                'attempt' => $args['bcc_resque.retry_attempt'] - 1)
         );
     } else {
         $at = time() + $delay;
@@ -129,13 +129,27 @@ if ($count > 1) {
 } else {
     // Start a single worker
     $queues = explode(',', $QUEUE);
-    $worker = new Resque_Worker($queues);
+
+    $env = $_SERVER['APP_ENV'] ?: 'dev';
+    $debug = (bool) ($_SERVER['APP_DEBUG'] ?: ('prod' !== $env));
+
+    $file = new SplFileInfo('/var/www/api/src/api/src/Kernel.php');
+    $class = "App\\".$file->getBasename('.php');
+
+    require $file;
+
+    $kernel = new $class($env, $debug);
+    $kernel->boot();
+
+    $worker_class = $kernel->getContainer()->getParameter('instasent_resque.resque.worker_class');
+
+    $worker = new $worker_class($kernel->getContainer(), $queues);
     $worker->setLogger($logger);
 
     $PIDFILE = getenv('PIDFILE');
     if ($PIDFILE) {
         file_put_contents($PIDFILE, getmypid()) or
-            die('Could not write PID information to ' . $PIDFILE);
+        die('Could not write PID information to ' . $PIDFILE);
     }
 
     $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));

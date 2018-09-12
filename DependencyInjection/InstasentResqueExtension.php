@@ -2,6 +2,7 @@
 
 namespace Instasent\ResqueBundle\DependencyInjection;
 
+use Instasent\ResqueBundle\Worker;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
@@ -40,15 +41,30 @@ class InstasentResqueExtension extends Extension
             $container->setParameter('instasent_resque.worker.root_dir', $config['worker']['root_dir']);
         }
 
+        if (!empty($config['worker_class']) &&
+            array_key_exists(\Resque_Worker::class, class_parents($config['worker_class']))
+        ) {
+            $container->setParameter('instasent_resque.resque.worker_class', $config['worker_class']);
+        }
+
+        if (!empty($config['worker_single_class']) &&
+            array_key_exists(Worker::class, class_parents($config['worker_class']))
+        ) {
+            $container->setParameter('instasent_resque.resque.worker_single_class', $config['worker_single_class']);
+        }
+
         if (!empty($config['auto_retry'])) {
             if (isset($config['auto_retry'][0])) {
-                $container->getDefinition('instasent_resque.resque')->addMethodCall('setGlobalRetryStrategy', array($config['auto_retry'][0]));
+                $container->getDefinition('instasent_resque.resque')->addMethodCall('setGlobalRetryStrategy',
+                    array($config['auto_retry'][0]));
             } else {
                 if (isset($config['auto_retry']['default'])) {
-                    $container->getDefinition('instasent_resque.resque')->addMethodCall('setGlobalRetryStrategy', array($config['auto_retry']['default']));
+                    $container->getDefinition('instasent_resque.resque')->addMethodCall('setGlobalRetryStrategy',
+                        array($config['auto_retry']['default']));
                     unset($config['auto_retry']['default']);
                 }
-                $container->getDefinition('instasent_resque.resque')->addMethodCall('setJobRetryStrategy', array($config['auto_retry']));
+                $container->getDefinition('instasent_resque.resque')->addMethodCall('setJobRetryStrategy',
+                    array($config['auto_retry']));
             }
         }
     }
